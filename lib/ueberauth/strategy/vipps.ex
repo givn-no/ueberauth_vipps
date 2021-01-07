@@ -29,13 +29,15 @@ defmodule Ueberauth.Strategy.Vipps do
   @doc """
   Handles the callback from Vipps.
   """
-  def handle_callback!(%Plug.Conn{params: %{"code" => code}} = conn) do
+  def handle_callback!(%Plug.Conn{params: %{"code" => code, "state" => state}} = conn) do
     params = [code: code]
     opts = oauth_client_options_from_conn(conn)
 
     case Ueberauth.Strategy.Vipps.OAuth.get_access_token(params, opts) do
       {:ok, token} ->
-        fetch_user(conn, token)
+        conn
+        |> put_private(:vipps_state, state)
+        |> fetch_user(token)
 
       {:error, {error_code, error_description}} ->
         set_errors!(conn, [error(error_code, error_description)])
@@ -107,6 +109,7 @@ defmodule Ueberauth.Strategy.Vipps do
       raw_info: %{
         token: conn.private.vipps_token,
         user: conn.private.vipps_user,
+        state: conn.private.vipps_state,
         email_verified: conn.private.vipps_user["email_verified"]
       }
     }
@@ -115,8 +118,6 @@ defmodule Ueberauth.Strategy.Vipps do
   defp fetch_user(conn, token) do
     conn = put_private(conn, :vipps_token, token)
 
-    # userinfo_endpoint from https://accounts.vipps.com/.well-known/openid-configuration
-    # the userinfo_endpoint may be overridden in options when necessary.
     path =
       case option(conn, :userinfo_endpoint) do
         {:system, varname, default} ->
