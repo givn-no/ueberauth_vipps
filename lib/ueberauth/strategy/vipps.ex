@@ -16,7 +16,7 @@ defmodule Ueberauth.Strategy.Vipps do
     updated =
       conn.private.ueberauth_request_options
       |> Map.put(:callback_params, [])
-      |> Map.update(:options, [], &(Keyword.delete(&1, :callback_params)))
+      |> Map.update(:options, [], &Keyword.delete(&1, :callback_params))
 
     Plug.Conn.put_private(conn, :ueberauth_request_options, updated)
   end
@@ -34,7 +34,7 @@ defmodule Ueberauth.Strategy.Vipps do
 
     new_state =
       callback_params(conn)
-      |> Keyword.merge([state: old_state])
+      |> Keyword.merge(state: old_state)
       |> URI.encode_query()
 
     params = [scope: scopes, state: new_state]
@@ -59,6 +59,7 @@ defmodule Ueberauth.Strategy.Vipps do
     case Ueberauth.Strategy.Vipps.OAuth.get_access_token(params, opts) do
       {:ok, token} ->
         fetch_user(conn, token)
+
       {:error, {error_code, error_description}} ->
         set_errors!(conn, [error(error_code, error_description)])
     end
@@ -146,7 +147,7 @@ defmodule Ueberauth.Strategy.Vipps do
     conn =
       conn
       |> put_private(:vipps_token, token)
-      |> Map.update(:params, %{}, &(Map.merge(state_params, &1)))
+      |> Map.update(:params, %{}, &Map.merge(state_params, &1))
 
     path =
       case option(conn, :userinfo_endpoint) do
