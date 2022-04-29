@@ -138,9 +138,9 @@ defmodule Ueberauth.Strategy.Vipps do
   defp fetch_user(conn, token) do
     # fetch params encoded to state (except the original state)
     state_params =
-      conn.params
-      |> Map.get("state", %{})
+      Map.get(conn.params, "state", "")
       |> URI.decode_query()
+      # remove original uerberauth state value from decoded object
       |> Map.delete("state")
 
     # merge params from state into conn
