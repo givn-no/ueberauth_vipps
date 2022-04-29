@@ -82,8 +82,7 @@ defmodule Ueberauth.Strategy.VippsTest do
   end
 
   test "handle_callback! assigns required fields on successful auth", %{csrf_state: csrf_state, csrf_conn: csrf_conn} do
-    conn =
-      conn(:get, "/auth/vipps/callback", %{code: "success_code", state: csrf_state}) |> set_csrf_cookies(csrf_conn)
+    conn = conn(:get, "/auth/vipps/callback", %{code: "success_code", state: csrf_state}) |> set_csrf_cookies(csrf_conn)
 
     routes = Ueberauth.init([])
     assert %Plug.Conn{assigns: %{ueberauth_auth: auth}} = Ueberauth.call(conn, routes)

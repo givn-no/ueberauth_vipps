@@ -12,18 +12,41 @@ defmodule Ueberauth.Strategy.Vipps do
   alias Ueberauth.Auth.Credentials
   alias Ueberauth.Auth.Extra
 
+  defp remove_callback_params(conn) do
+    updated =
+      conn.private.ueberauth_request_options
+      |> Map.put(:callback_params, [])
+      |> Map.update(:options, [], &Keyword.delete(&1, :callback_params))
+
+    Plug.Conn.put_private(conn, :ueberauth_request_options, updated)
+  end
+
   @doc """
   Handles initial request for Vipps authentication.
   """
   def handle_request!(conn) do
     scopes = conn.params["scope"] || option(conn, :default_scope)
 
-    params =
-      [scope: scopes]
+    old_state =
+      [state: ""]
       |> with_state_param(conn)
+      |> Keyword.get(:state)
 
+    new_state =
+      callback_params(conn)
+      |> Keyword.merge(state: old_state)
+      |> URI.encode_query()
+
+    params = [scope: scopes, state: new_state]
+
+    # remove callback params so they aren't added to redirect_uri
+    conn = remove_callback_params(conn)
     opts = oauth_client_options_from_conn(conn)
-    redirect!(conn, Ueberauth.Strategy.Vipps.OAuth.authorize_url!(params, opts))
+
+    conn
+    |> add_state_param(new_state)
+    |> Plug.Conn.put_resp_cookie("ueberauth.state_param", new_state, same_site: "Lax")
+    |> redirect!(Ueberauth.Strategy.Vipps.OAuth.authorize_url!(params, opts))
   end
 
   @doc """
@@ -36,6 +59,7 @@ defmodule Ueberauth.Strategy.Vipps do
     case Ueberauth.Strategy.Vipps.OAuth.get_access_token(params, opts) do
       {:ok, token} ->
         fetch_user(conn, token)
+
       {:error, {error_code, error_description}} ->
         set_errors!(conn, [error(error_code, error_description)])
     end
@@ -112,7 +136,18 @@ defmodule Ueberauth.Strategy.Vipps do
   end
 
   defp fetch_user(conn, token) do
-    conn = put_private(conn, :vipps_token, token)
+    # fetch params encoded to state (except the original state)
+    state_params =
+      Map.get(conn.params, "state", "")
+      |> URI.decode_query()
+      # remove original uerberauth state value from decoded object
+      |> Map.delete("state")
+
+    # merge params from state into conn
+    conn =
+      conn
+      |> put_private(:vipps_token, token)
+      |> Map.update(:params, %{}, &Map.merge(state_params, &1))
 
     path =
       case option(conn, :userinfo_endpoint) do
