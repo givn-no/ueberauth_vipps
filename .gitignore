@@ -56,3 +56,6 @@ tags
 
 # IDE
 .idea
+
+# Windows
+.fetch
