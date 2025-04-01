@@ -1,8 +1,8 @@
 defmodule UeberauthVipps.Mixfile do
   use Mix.Project
 
-  @version "0.1.0"
-  @url "https://github.com/hooplab/ueberauth_vipps"
+  @version "0.1.1"
+  @url "https://github.com/givn-no/ueberauth_vipps"
 
   def project do
     [
@@ -10,6 +10,7 @@ defmodule UeberauthVipps.Mixfile do
       version: @version,
       name: "Ueberauth Vipps Strategy",
       package: package(),
+      hex: hex(),
       elixir: "~> 1.3",
       build_embedded: Mix.env() == :prod,
       start_permanent: Mix.env() == :prod,
@@ -49,6 +50,13 @@ defmodule UeberauthVipps.Mixfile do
       maintainers: ["Lars Rasmussen"],
       licenses: ["MIT"],
       links: %{GitHub: @url}
+    ]
+  end
+
+  defp hex do
+    [
+      api_url: System.get_env("HEX_API_URL"),
+      api_key: System.get_env("HEX_API_KEY")
     ]
   end
 end
